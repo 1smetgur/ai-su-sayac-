@@ -1,0 +1,749 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Su Ayak İzi</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+    
+    <style>
+        :root {
+            --bg-color: #0f172a;
+            --panel-bg: rgba(30, 41, 59, 0.7);
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+            --accent-cyan: #06b6d4;
+            --accent-glow: rgba(6, 182, 212, 0.5);
+            --danger: #ef4444;
+            --water-base: #0ea5e9;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            font-family: 'Inter', sans-serif;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+            overflow-x: hidden;
+            position: relative;
+        }
+
+        .water-container {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            z-index: -1;
+            overflow: hidden;
+            pointer-events: none;
+        }
+
+        .wave {
+            position: absolute;
+            left: -50%;
+            width: 200vw;
+            height: 200vw;
+            background: rgba(14, 165, 233, 0.15);
+            border-radius: 40%;
+            animation: spin 15s linear infinite;
+            top: 100%;
+            transition: top 2s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        
+        .wave:nth-child(2) {
+            background: rgba(6, 182, 212, 0.2);
+            animation: spin 20s linear infinite;
+            border-radius: 45%;
+        }
+
+        @keyframes spin {
+            100% { transform: rotate(360deg); }
+        }
+
+        .glass-panel {
+            background: var(--panel-bg);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 24px;
+            padding: 40px;
+            width: 100%;
+            max-width: 500px;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+            position: relative;
+            z-index: 10;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        h1 {
+            font-size: 28px;
+            font-weight: 800;
+            letter-spacing: -0.5px;
+            margin-bottom: 8px;
+            background: linear-gradient(to right, #f8fafc, var(--accent-cyan));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .subtitle {
+            color: var(--text-muted);
+            font-size: 14px;
+        }
+
+        .presets {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+            margin-bottom: 30px;
+        }
+
+        .preset-btn {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            color: var(--text-main);
+            padding: 12px;
+            border-radius: 12px;
+            font-family: 'Inter', sans-serif;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .preset-btn:hover {
+            background: rgba(6, 182, 212, 0.2);
+            border-color: var(--accent-cyan);
+            box-shadow: 0 0 15px var(--accent-glow);
+            transform: translateY(-2px);
+        }
+
+        .input-group {
+            margin-bottom: 24px;
+        }
+
+        .input-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+        }
+
+        label {
+            font-size: 14px;
+            font-weight: 600;
+            color: #e2e8f0;
+        }
+
+        .value-display {
+            font-family: 'Space Mono', monospace;
+            color: var(--accent-cyan);
+            font-weight: 700;
+            font-size: 16px;
+            background: rgba(0,0,0,0.3);
+            padding: 4px 10px;
+            border-radius: 6px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            width: 75px;
+            text-align: center;
+            outline: none;
+            transition: border-color 0.3s, box-shadow 0.3s;
+        }
+
+        .value-display:focus {
+            border-color: var(--accent-cyan);
+            box-shadow: 0 0 8px rgba(6, 182, 212, 0.3);
+        }
+
+        .value-display::-webkit-outer-spin-button,
+        .value-display::-webkit-inner-spin-button {
+            -webkit-appearance: none;
+            margin: 0;
+        }
+
+        .value-display[type=number] {
+            -moz-appearance: textfield;
+        }
+
+        input[type="range"] {
+            -webkit-appearance: none;
+            width: 100%;
+            height: 6px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 3px;
+            outline: none;
+            margin-bottom: 15px;
+        }
+
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: var(--accent-cyan);
+            cursor: pointer;
+            box-shadow: 0 0 10px var(--accent-glow);
+            transition: transform 0.1s;
+        }
+
+        input[type="range"]::-webkit-slider-thumb:hover {
+            transform: scale(1.2);
+        }
+
+        .action-btn {
+            width: 100%;
+            padding: 16px;
+            background: linear-gradient(135deg, var(--accent-cyan), #0284c7);
+            color: white;
+            border: none;
+            border-radius: 12px;
+            font-size: 16px;
+            font-weight: 800;
+            letter-spacing: 1px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-top: 10px;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.3);
+            box-shadow: 0 10px 20px rgba(6, 182, 212, 0.3);
+        }
+
+        .action-btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 15px 25px rgba(6, 182, 212, 0.4);
+        }
+
+        .action-btn:active {
+            transform: translateY(1px);
+        }
+
+        #result-card {
+            display: none;
+            margin-top: 30px;
+            padding: 30px;
+            background: linear-gradient(180deg, #1e293b, #0f172a);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 20px;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+            animation: slideUp 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        @keyframes slideUp {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .receipt-header {
+            font-family: 'Space Mono', monospace;
+            font-size: 12px;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            margin-bottom: 20px;
+            border-bottom: 1px dashed rgba(255,255,255,0.2);
+            padding-bottom: 10px;
+        }
+
+        .result-water {
+            font-family: 'Space Mono', monospace;
+            font-size: 48px;
+            font-weight: 700;
+            color: white;
+            margin: 10px 0;
+            text-shadow: 0 0 20px rgba(255,255,255,0.3);
+        }
+
+        .result-metaphor {
+            font-size: 16px;
+            line-height: 1.6;
+            color: #cbd5e1;
+            margin-top: 20px;
+            padding: 15px;
+            background: rgba(0,0,0,0.2);
+            border-radius: 12px;
+        }
+
+        .share-btn {
+            margin-top: 20px;
+            padding: 12px 20px;
+            background: rgba(6, 182, 212, 0.1);
+            border: 1px solid rgba(6, 182, 212, 0.4);
+            color: white;
+            border-radius: 8px;
+            font-family: 'Inter', sans-serif;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            width: 100%;
+        }
+
+        .share-btn:hover {
+            background: rgba(6, 182, 212, 0.3);
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(6, 182, 212, 0.2);
+        }
+
+        .wave.apocalypse {
+            background: rgba(239, 68, 68, 0.2) !important;
+        }
+        
+        .wave.apocalypse:nth-child(2) {
+            background: rgba(220, 38, 38, 0.3) !important;
+        }
+
+        .redeem-btn {
+            margin-top: 10px;
+            padding: 10px 20px;
+            background: transparent;
+            border: 1px dashed rgba(255, 255, 255, 0.3);
+            color: #cbd5e1;
+            border-radius: 8px;
+            font-family: 'Inter', sans-serif;
+            font-size: 13px;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 100%;
+            transition: all 0.3s ease;
+        }
+
+        .redeem-btn:hover {
+            color: white;
+            border-color: #22c55e;
+            background: rgba(34, 197, 94, 0.1);
+            transform: translateY(-1px);
+        }
+
+        .coffee-btn {
+            margin-top: 10px;
+            padding: 10px 20px;
+            background: rgba(245, 158, 11, 0.05);
+            border: 1px dashed rgba(245, 158, 11, 0.3);
+            color: #fcd34d;
+            border-radius: 8px;
+            font-family: 'Inter', sans-serif;
+            font-size: 13px;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 100%;
+            transition: all 0.3s ease;
+        }
+
+        .coffee-btn:hover {
+            color: #fff;
+            border-color: #f59e0b;
+            background: rgba(245, 158, 11, 0.15);
+            transform: translateY(-1px);
+        }
+
+        .facts-section {
+            margin-top: 40px;
+            padding-top: 25px;
+            border-top: 1px dashed rgba(255,255,255,0.1);
+        }
+
+        .facts-title {
+            font-size: 13px;
+            color: var(--text-muted);
+            text-align: center;
+            margin-bottom: 20px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .facts-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+        }
+
+        .fact-card {
+            background: rgba(0, 0, 0, 0.25);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            border-radius: 12px;
+            padding: 16px;
+            text-align: left;
+            transition: transform 0.3s, border-color 0.3s;
+        }
+
+        .fact-card:hover {
+            transform: translateY(-3px);
+            border-color: var(--danger);
+            background: rgba(239, 68, 68, 0.05);
+        }
+
+        .fact-number {
+            font-family: 'Space Mono', monospace;
+            font-size: 18px;
+            font-weight: 700;
+            color: var(--danger);
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .fact-desc {
+            font-size: 12px;
+            color: #cbd5e1;
+            line-height: 1.5;
+        }
+
+        .disclaimer-section {
+            margin-top: 30px;
+            padding: 20px;
+            background: rgba(0, 0, 0, 0.2);
+            border: 1px dashed rgba(255, 255, 255, 0.05);
+            border-radius: 12px;
+            font-size: 11px;
+            color: var(--text-muted);
+            line-height: 1.6;
+            text-align: justify;
+        }
+        
+        .disclaimer-section strong {
+            color: var(--accent-cyan);
+        }
+
+        @media (max-width: 480px) {
+            .facts-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="water-container">
+        <div class="wave" id="wave1"></div>
+        <div class="wave" id="wave2"></div>
+    </div>
+
+    <main class="glass-panel">
+        <div class="header">
+            <h1>Aİ SU SAYACI</h1>
+            <p class="subtitle">Bugün yapay zeka uğruna ne kadar su tükettin?</p>
+        </div>
+
+        <div class="presets">
+            <button class="preset-btn" onclick="setValues(2, 0, 0, 0, 0)">
+                <span>💬</span> Kısa Bir Soru
+            </button>
+            <button class="preset-btn" onclick="setValues(25, 0, 2, 0, 0)">
+                <span>🐛</span> Debug Çilesi
+            </button>
+            <button class="preset-btn" onclick="setValues(0, 0, 0, 45, 0)">
+                <span>🗣️</span> AI Terapist
+            </button>
+            <button class="preset-btn" onclick="setValues(0, 0, 0, 0, 2)">
+                <span>🎬</span> Yönetmen
+            </button>
+        </div>
+
+        <!-- Girdiler -->
+        <div class="input-group">
+            <div class="input-header">
+                <label>Metin Sorgusu (Prompt)</label>
+                <input type="number" class="value-display" id="text-num" min="0" max="1000" value="0" oninput="sync('text', true)">
+            </div>
+            <input type="range" id="text-slider" min="0" max="200" value="0" oninput="sync('text', false)">
+        </div>
+
+        <div class="input-group">
+            <div class="input-header">
+                <label>Üretilen Görsel Sayısı</label>
+                <input type="number" class="value-display" id="img-num" min="0" max="500" value="0" oninput="sync('img', true)">
+            </div>
+            <input type="range" id="img-slider" min="0" max="100" value="0" oninput="sync('img', false)">
+        </div>
+
+        <div class="input-group">
+            <div class="input-header">
+                <label>Kod Asistanı (Saat)</label>
+                <input type="number" step="0.5" class="value-display" id="code-num" min="0" max="24" value="0" oninput="sync('code', true)">
+            </div>
+            <input type="range" id="code-slider" min="0" max="24" value="0" step="0.5" oninput="sync('code', false)">
+        </div>
+
+        <div class="input-group">
+            <div class="input-header">
+                <label>Sesli / Derin Sohbet (Dakika)</label>
+                <input type="number" class="value-display" id="voice-num" min="0" max="180" value="0" oninput="sync('voice', true)">
+            </div>
+            <input type="range" id="voice-slider" min="0" max="180" value="0" oninput="sync('voice', false)">
+        </div>
+
+        <div class="input-group">
+            <div class="input-header">
+                <label>AI Video Üretimi (Adet)</label>
+                <input type="number" class="value-display" id="video-num" min="0" max="50" value="0" oninput="sync('video', true)">
+            </div>
+            <input type="range" id="video-slider" min="0" max="50" value="0" oninput="sync('video', false)">
+        </div>
+
+        <button class="action-btn" onclick="calculate()">HESABI KES</button>
+
+        <div id="result-card">
+            <div class="receipt-header">AI Su Ayak izi Karnesi</div>
+            <div style="color: var(--accent-cyan); font-weight: 600; font-size: 14px;">TOPLAM TÜKETİM</div>
+            <div class="result-water" id="total-liters">0.00L</div>
+            <div class="result-metaphor" id="metaphor-text">Tebrikler, henüz doğayı katletmedin.</div>
+            
+            <button class="share-btn" id="share-btn" onclick="shareResult()">
+                📸 Karnemi İndir / Paylaş
+            </button>
+            <a href="https://www.tema.org.tr/tek-seferlik-genel-bagis" target="_blank" class="redeem-btn" id="redeem-btn">
+                🌱 Vicdanını Temizle (Fidan Bağışla)
+            </a>
+            <a href="https://kreosus.com/linkedincominismet-tunahan-gur-14b11b280" target="_blank" class="coffee-btn" id="coffee-btn">
+                ☕ Geliştiriciye Destek Ol
+            </a>
+        </div>
+
+        <!-- YENİ PROVOKATİF BÖLÜM -->
+            <h3 class="facts-title">Rahatsız edici gerçekler</h3>
+            <div class="facts-grid">
+                <div class="fact-card">
+                    <div class="fact-number"><span>🚰</span> 700.000 L</div>
+                    <div class="fact-desc">Senin "Merhaba" dediğin GPT-3'ün sadece <b>eğitilmesi</b> nükleer reaktör soğutur gibi 700 ton su yuttu. Bak, deniz suyu değil, içtiğin su.</div>
+                </div>
+                <div class="fact-card">
+                    <div class="fact-number"><span>📈</span> %34</div>
+                    <div class="fact-desc">Sırf millet AI asistanlara anlamsız mailler yazdırsın diye Microsoft'un su tüketimi sadece bir yılda %34 fırladı.</div>
+                </div>
+                <div class="fact-card">
+                    <div class="fact-number"><span>🏜️</span> 6.6 Milyar m³</div>
+                    <div class="fact-desc">2027 tahmini. Bu hızla gidersek internet kafelerde saatlik internet değil, saatlik damacana satılacak.</div>
+                </div>
+                <div class="fact-card">
+                    <div class="fact-number"><span>💧</span> Tatlı Su Şart</div>
+                    <div class="fact-desc">Sunucu boruları paslanmasın diye okyanus suyu KULLANILAMIYOR. Teknoloji devleri doğrudan senin içebileceğin tatlı sularla ekran kartı soğutuyor.</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="disclaimer-section">
+            <strong>⚠️ Sorumluluk Reddi (Disclaimer):</strong> Bu sitedeki hesaplamalar kesin doğruluğu iddia etmez; farkındalık yaratmak amacıyla oluşturulmuş matematiksel modellemelerdir. Hesaplamalar; <em>UC Riverside</em> ve <em>Colorado Üniversitesi</em>'nin güncel yayınları, endüstriyel PUE/WUE metrikleri baz alınarak basitleştirilmiştir.
+        </div>
+
+    </main>
+
+    <script>
+        // Bilimsel Çarpanlar (ml cinsinden)
+        const TEXT_MULTIPLIER = 15;
+        const IMG_MULTIPLIER = 100;
+        const CODE_MULTIPLIER = 200;
+        const VOICE_MULTIPLIER = 50;   // Dakika başı 50ml
+        const VIDEO_MULTIPLIER = 1500; // Video başı 1.5L
+
+        function sync(type, fromNum = false) {
+            let numInput = document.getElementById(type + '-num');
+            let sliderInput = document.getElementById(type + '-slider');
+            
+            let val = fromNum ? numInput.value : sliderInput.value;
+            
+            if (val === '') val = 0;
+
+            if (fromNum) {
+                sliderInput.value = val;
+            } else {
+                numInput.value = type === 'code' && val > 0 ? parseFloat(val).toFixed(1) : val;
+            }
+        }
+
+        function setValues(text, img, code, voice = 0, video = 0) {
+            document.getElementById('text-slider').value = text;
+            document.getElementById('text-num').value = text;
+
+            document.getElementById('img-slider').value = img;
+            document.getElementById('img-num').value = img;
+
+            document.getElementById('code-slider').value = code;
+            document.getElementById('code-num').value = code > 0 ? parseFloat(code).toFixed(1) : "0";
+            
+            document.getElementById('voice-slider').value = voice;
+            document.getElementById('voice-num').value = voice;
+
+            document.getElementById('video-slider').value = video;
+            document.getElementById('video-num').value = video;
+            
+            document.getElementById('result-card').style.display = 'none';
+            setWaterLevel(100); 
+        }
+
+        function setWaterLevel(percentageTop) {
+            document.getElementById('wave1').style.top = percentageTop + '%';
+            document.getElementById('wave2').style.top = (percentageTop + 2) + '%';
+        }
+
+        function calculate() {
+            let text = parseFloat(document.getElementById('text-num').value) || 0;
+            let img = parseFloat(document.getElementById('img-num').value) || 0;
+            let code = parseFloat(document.getElementById('code-num').value) || 0;
+            let voice = parseFloat(document.getElementById('voice-num').value) || 0;
+            let video = parseFloat(document.getElementById('video-num').value) || 0;
+
+            let totalML = (text * TEXT_MULTIPLIER) + (img * IMG_MULTIPLIER) + (code * CODE_MULTIPLIER) + (voice * VOICE_MULTIPLIER) + (video * VIDEO_MULTIPLIER);
+            let totalLiters = (totalML / 1000).toFixed(2);
+
+            document.getElementById('total-liters').innerText = totalLiters + "L";
+
+            let metaphor = "";
+            let waterTopPos = 100; 
+            
+            document.getElementById('wave1').classList.remove('apocalypse');
+            document.getElementById('wave2').classList.remove('apocalypse');
+            document.getElementById('total-liters').style.color = "white";
+
+            if (totalML === 0) {
+                metaphor = "Hiçbir şeye dokunmadın. Ya bilgisayarın kapalı ya da şifreni unuttun.";
+                waterTopPos = 100;
+            } else if (totalML <= 150) {
+                metaphor = "💧 Bir yudum su. Şimdilik masumsun ama potansiyel bir doğa katili olduğunu biliyoruz.";
+                waterTopPos = 95;
+            } else if (totalML <= 500) {
+                metaphor = "☕ Sırf 'Bana komik bir tweet yaz' demek için yarım litre temiz suyu buharlaştırdın. Harika bir takastı doğrusu.";
+                waterTopPos = 85;
+            } else if (totalML <= 1500) {
+                metaphor = "🌵 Bütün yaz sulanmayı bekleyen evdeki o zavallı kaktüsün hakkını yedin.";
+                waterTopPos = 75;
+            } else if (totalML <= 3000) {
+                metaphor = "🐶 Sokaktaki köpeğin günlük su kabını devirdin. Evet, o Midjourney'deki siberpunk kedi resmi buna kesinlikle değdi.";
+                waterTopPos = 65;
+            } else if (totalML <= 5000) {
+                metaphor = "🚽 Gereksiz yere sifon çektin. Yazdırdığın o anlamsız kodlar direkt kanalizasyona gitti.";
+                waterTopPos = 55;
+            } else if (totalML <= 8000) {
+                metaphor = "🍽️ Makinede yıkanacak bir haftalık bulaşık suyunu, yapay zekanın boğazından aşağı döktün.";
+                waterTopPos = 45;
+            } else if (totalML <= 14000) {
+                metaphor = "🚿 5 dakikalık sıcak bir duş. Sen koltuğunda terlerken sunucular senin sayende serinledi.";
+                waterTopPos = 35;
+            } else if (totalML <= 22000) {
+                metaphor = "🚗 Çıkıp arabayı hortumla yıkasaydın doğaya çok daha az zarar verirdin.";
+                waterTopPos = 25;
+            } else if (totalML <= 35000) {
+                metaphor = "🛁 Ağzına kadar dolu bir küvet. Bugün yapay zeka senin sayende adeta spa keyfi yaptı.";
+                waterTopPos = 15;
+            } else if (totalML <= 55000) {
+                metaphor = "🌊 Mahallenin çocukları susuzluktan ağlarken sen o küçük şişme havuzu siber uzaya fırlattın.";
+                waterTopPos = 5;
+            } else if (totalML <= 100000) {
+                metaphor = "💦 İtfaiye hortumunu havaya sıktın! Ekran sular altında, sen hala 'şunu daha mavi yap' diyorsun.";
+                waterTopPos = -15;
+            } else if (totalML <= 200000) {
+                metaphor = "🏊‍♂️ Olimpik bir havuzun kulvarını kuruttun. Tebrikler, artık resmi olarak yürüyen bir iklim krizisin.";
+                waterTopPos = -40;
+            } else {
+                // KIYAMET MODU
+                metaphor = "🚨 KIYAMET: Umarım bu kadar promptu kansere çare bulmak için girmişsindir. Yoksa Silikon Vadisi sırf senin saçmalıkların yüzünden şu an fokurduyor!";
+                waterTopPos = -70;
+                document.getElementById('wave1').classList.add('apocalypse');
+                document.getElementById('wave2').classList.add('apocalypse');
+                document.getElementById('total-liters').style.color = "var(--danger)";
+            }
+
+            document.getElementById('metaphor-text').innerText = metaphor;
+            document.getElementById('result-card').style.display = 'block';
+            
+            setTimeout(() => {
+                setWaterLevel(waterTopPos);
+            }, 50);
+        }
+
+        async function shareResult() {
+            const shareBtn = document.getElementById('share-btn');
+            const redeemBtn = document.getElementById('redeem-btn');
+            const coffeeBtn = document.getElementById('coffee-btn');
+            const resultCard = document.getElementById('result-card');
+            
+            const originalText = shareBtn.innerHTML;
+            shareBtn.innerHTML = '⏳ Hazırlanıyor...';
+            shareBtn.style.pointerEvents = 'none';
+            
+            setTimeout(async () => {
+                shareBtn.style.display = 'none';
+                if(redeemBtn) redeemBtn.style.display = 'none';
+                if(coffeeBtn) coffeeBtn.style.display = 'none';
+                
+                try {
+                    const canvas = await html2canvas(resultCard, {
+                        backgroundColor: '#0f172a',
+                        scale: 2, 
+                        useCORS: true,
+                        borderRadius: 20
+                    });
+                    
+                    const imageUrl = canvas.toDataURL('image/png');
+                    
+                    let shared = false;
+                    if (navigator.share && navigator.canShare) {
+                        try {
+                            const blob = await (await fetch(imageUrl)).blob();
+                            const file = new File([blob], 'ai-su-karnesi.png', { type: 'image/png' });
+                            
+                            if (navigator.canShare({ files: [file] })) {
+                                await navigator.share({
+                                    files: [file],
+                                    title: 'AI Su Ayak İzim',
+                                    text: 'Yapay zeka kullanırken doğadan ne kadar su harcadığımı öğrendim! 💧🤖'
+                                });
+                                shared = true;
+                            }
+                        } catch (err) {
+                            console.log("Paylaşım menüsü iptal edildi veya hata oluştu.");
+                        }
+                    }
+
+                    if (!shared) {
+                        const link = document.createElement('a');
+                        link.download = 'ai-su-karnem.png';
+                        link.href = imageUrl;
+                        link.click();
+                    }
+                    
+                } catch (error) {
+                    console.error("Görsel oluşturulurken hata:", error);
+                } finally {
+                    shareBtn.style.display = 'inline-flex';
+                    shareBtn.innerHTML = originalText;
+                    shareBtn.style.pointerEvents = 'auto';
+                    if(redeemBtn) redeemBtn.style.display = 'inline-flex';
+                    if(coffeeBtn) coffeeBtn.style.display = 'inline-flex';
+                }
+            }, 100); 
+        }
+    </script>
+</body>
+</html>
